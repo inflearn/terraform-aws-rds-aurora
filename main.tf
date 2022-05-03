@@ -85,20 +85,20 @@ resource "aws_rds_cluster" "this" {
   enabled_cloudwatch_logs_exports     = var.enabled_cloudwatch_logs_exports
 
   timeouts {
-    create = lookup(var.cluster_timeouts, "create", null)
-    update = lookup(var.cluster_timeouts, "update", null)
-    delete = lookup(var.cluster_timeouts, "delete", null)
+    create = try(var.cluster_timeouts.create, null)
+    update = try(var.cluster_timeouts.update, null)
+    delete = try(var.cluster_timeouts.delete, null)
   }
 
   dynamic "scaling_configuration" {
     for_each = length(keys(var.scaling_configuration)) == 0 || !local.is_serverless ? [] : [var.scaling_configuration]
 
     content {
-      auto_pause               = lookup(scaling_configuration.value, "auto_pause", null)
-      max_capacity             = lookup(scaling_configuration.value, "max_capacity", null)
-      min_capacity             = lookup(scaling_configuration.value, "min_capacity", null)
-      seconds_until_auto_pause = lookup(scaling_configuration.value, "seconds_until_auto_pause", null)
-      timeout_action           = lookup(scaling_configuration.value, "timeout_action", null)
+      auto_pause               = try(scaling_configuration.value.auto_pause, null)
+      max_capacity             = try(scaling_configuration.value.max_capacity, null)
+      min_capacity             = try(scaling_configuration.value.min_capacity, null)
+      seconds_until_auto_pause = try(scaling_configuration.value.seconds_until_auto_pause, null)
+      timeout_action           = try(scaling_configuration.value.timeout_action, null)
     }
   }
 
@@ -108,7 +108,7 @@ resource "aws_rds_cluster" "this" {
       source_engine         = "mysql"
       source_engine_version = s3_import.value.source_engine_version
       bucket_name           = s3_import.value.bucket_name
-      bucket_prefix         = lookup(s3_import.value, "bucket_prefix", null)
+      bucket_prefix         = try(s3_import.value.bucket_prefix, null)
       ingestion_role        = s3_import.value.ingestion_role
     }
   }
@@ -118,9 +118,9 @@ resource "aws_rds_cluster" "this" {
 
     content {
       source_cluster_identifier  = restore_to_point_in_time.value.source_cluster_identifier
-      restore_type               = lookup(restore_to_point_in_time.value, "restore_type", null)
-      use_latest_restorable_time = lookup(restore_to_point_in_time.value, "use_latest_restorable_time", null)
-      restore_to_time            = lookup(restore_to_point_in_time.value, "restore_to_time", null)
+      restore_type               = try(restore_to_point_in_time.value.restore_type, null)
+      use_latest_restorable_time = try(restore_to_point_in_time.value.use_latest_restorable_time, null)
+      restore_to_time            = try(restore_to_point_in_time.value.restore_to_time, null)
     }
   }
 
@@ -143,36 +143,36 @@ resource "aws_rds_cluster_instance" "this" {
   # Notes:
   # Do not set preferred_backup_window - its set at the cluster level and will error if provided here
 
-  identifier                            = var.instances_use_identifier_prefix ? null : lookup(each.value, "identifier", "${var.name}-${each.key}")
-  identifier_prefix                     = var.instances_use_identifier_prefix ? lookup(each.value, "identifier_prefix", "${var.name}-${each.key}-") : null
+  identifier                            = var.instances_use_identifier_prefix ? null : try(each.value.identifier, "${var.name}-${each.key}")
+  identifier_prefix                     = var.instances_use_identifier_prefix ? try(each.value.identifier_prefix, "${var.name}-${each.key}-") : null
   cluster_identifier                    = try(aws_rds_cluster.this[0].id, "")
   engine                                = var.engine
   engine_version                        = var.engine_version
-  instance_class                        = lookup(each.value, "instance_class", var.instance_class)
-  publicly_accessible                   = lookup(each.value, "publicly_accessible", var.publicly_accessible)
+  instance_class                        = try(each.value.instance_class, var.instance_class)
+  publicly_accessible                   = try(each.value.publicly_accessible, var.publicly_accessible)
   db_subnet_group_name                  = local.db_subnet_group_name
-  db_parameter_group_name               = lookup(each.value, "db_parameter_group_name", var.db_parameter_group_name)
-  apply_immediately                     = lookup(each.value, "apply_immediately", var.apply_immediately)
+  db_parameter_group_name               = try(each.value.db_parameter_group_name, var.db_parameter_group_name)
+  apply_immediately                     = try(each.value.apply_immediately, var.apply_immediately)
   monitoring_role_arn                   = local.rds_enhanced_monitoring_arn
-  monitoring_interval                   = lookup(each.value, "monitoring_interval", var.monitoring_interval)
-  promotion_tier                        = lookup(each.value, "promotion_tier", null)
-  availability_zone                     = lookup(each.value, "availability_zone", null)
-  preferred_maintenance_window          = lookup(each.value, "preferred_maintenance_window", var.preferred_maintenance_window)
-  auto_minor_version_upgrade            = lookup(each.value, "auto_minor_version_upgrade", var.auto_minor_version_upgrade)
-  performance_insights_enabled          = lookup(each.value, "performance_insights_enabled", var.performance_insights_enabled)
-  performance_insights_kms_key_id       = lookup(each.value, "performance_insights_kms_key_id", var.performance_insights_kms_key_id)
-  performance_insights_retention_period = lookup(each.value, "performance_insights_retention_period", var.performance_insights_retention_period)
-  copy_tags_to_snapshot                 = lookup(each.value, "copy_tags_to_snapshot", var.copy_tags_to_snapshot)
+  monitoring_interval                   = try(each.value.monitoring_interval, var.monitoring_interval)
+  promotion_tier                        = try(each.value.promotion_tier, null)
+  availability_zone                     = try(each.value.availability_zone, null)
+  preferred_maintenance_window          = try(each.value.preferred_maintenance_window, var.preferred_maintenance_window)
+  auto_minor_version_upgrade            = try(each.value.auto_minor_version_upgrade, var.auto_minor_version_upgrade)
+  performance_insights_enabled          = try(each.value.performance_insights_enabled, var.performance_insights_enabled)
+  performance_insights_kms_key_id       = try(each.value.performance_insights_kms_key_id, var.performance_insights_kms_key_id)
+  performance_insights_retention_period = try(each.value.performance_insights_retention_period, var.performance_insights_retention_period)
+  copy_tags_to_snapshot                 = try(each.value.copy_tags_to_snapshot, var.copy_tags_to_snapshot)
   ca_cert_identifier                    = var.ca_cert_identifier
 
   timeouts {
-    create = lookup(var.instance_timeouts, "create", null)
-    update = lookup(var.instance_timeouts, "update", null)
-    delete = lookup(var.instance_timeouts, "delete", null)
+    create = try(var.instance_timeouts.create, null)
+    update = try(var.instance_timeouts.update, null)
+    delete = try(var.instance_timeouts.delete, null)
   }
 
   # TODO - not sure why this is failing and throwing type mis-match errors
-  # tags = merge(var.tags, lookup(each.value, "tags", {}))
+  # tags = merge(var.tags, try(each.value.tags, {}))
   tags = var.tags
 }
 
@@ -183,14 +183,14 @@ resource "aws_rds_cluster_endpoint" "this" {
   cluster_endpoint_identifier = each.value.identifier
   custom_endpoint_type        = each.value.type
 
-  static_members   = lookup(each.value, "static_members", null)
-  excluded_members = lookup(each.value, "excluded_members", null)
+  static_members   = try(each.value.static_members, null)
+  excluded_members = try(each.value.excluded_members, null)
 
   depends_on = [
     aws_rds_cluster_instance.this
   ]
 
-  tags = merge(var.tags, lookup(each.value, "tags", {}))
+  tags = merge(var.tags, try(each.value.tags, {}))
 }
 
 resource "aws_rds_cluster_role_association" "this" {
@@ -326,15 +326,15 @@ resource "aws_security_group_rule" "egress" {
 
   # required
   type              = "egress"
-  from_port         = lookup(each.value, "from_port", local.port)
-  to_port           = lookup(each.value, "to_port", local.port)
+  from_port         = try(each.value.from_port, local.port)
+  to_port           = try(each.value.to_port, local.port)
   protocol          = "tcp"
   security_group_id = local.rds_security_group_id
 
   # optional
-  cidr_blocks              = lookup(each.value, "cidr_blocks", null)
-  description              = lookup(each.value, "description", null)
-  ipv6_cidr_blocks         = lookup(each.value, "ipv6_cidr_blocks", null)
-  prefix_list_ids          = lookup(each.value, "prefix_list_ids", null)
-  source_security_group_id = lookup(each.value, "source_security_group_id", null)
+  cidr_blocks              = try(each.value.cidr_blocks, null)
+  description              = try(each.value.description, null)
+  ipv6_cidr_blocks         = try(each.value.ipv6_cidr_blocks, null)
+  prefix_list_ids          = try(each.value.prefix_list_ids, null)
+  source_security_group_id = try(each.value.source_security_group_id, null)
 }
